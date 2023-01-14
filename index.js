@@ -8,18 +8,28 @@ class Block {
     this.data = data
     this.previousHash = previouHash
     this.hash = this.createHash()
+    // 'dificultad'
+    this.nonce = 0
   }
 
   createHash () {
     // Método que crea el hash del bloque
-    return SHA256(this.index, this.data, this.date, this.previouHash).toString()
+    return SHA256(this.index, this.data, this.date, this.previousHash, this.nonce).toString()
+  }
+
+  mine (difficulty) {
+    while (!this.hash.startsWith(difficulty)) {
+      this.nonce++
+      this.hash = this.createHash()
+    }
   }
 }
 
 class BlockChain {
   // clase que define la estructura de la cadena de bloques
-  constructor (genesis) {
+  constructor (genesis, difficulty = '00') {
     this.chain = [this.createFirstBlock(genesis)]
+    this.difficulty = difficulty
   }
 
   createFirstBlock (genesis) {
@@ -37,15 +47,41 @@ class BlockChain {
     // Se extrae el index y hash del bloque anterior.
     const { index, hash } = this.getLastBlock()
     const block = new Block(index + 1, data, hash)
+    block.mine(this.difficulty)
+    console.log(block.nonce)
     this.chain.push(block)
   }
+
+  removeInvalidBlock (invalidBlock) {
+    if (!this.isValid()) {
+      this.chain.filter(block => block !== invalidBlock)
+    }
+  }
+
+  isValid () {
+    // recorre el arreglo desde el segundo bloque verificando que concuerden los hash
+    this.chain.map((currBlock, i) => {
+      const prevBlock = this.chain[i - 1]
+      if (!this.verifyHash(prevBlock, currBlock)) {
+        return false
+      }
+      return true
+    }).flat()
+  }
+
+  verifyHash (prevBlock, currBlock) {
+    if (currBlock !== prevBlock.previousHash) {
+      return false
+    }
+    if (currBlock.createHash() !== currBlock.hash) {
+      return false
+    }
+    return true
+  }
 }
-const funcion = () => {}
-funcion()
+
 const block = new Block(0, 'prueba')
 console.log(block)
-
-const proyectCoin = new BlockChain('prueba de génesis')
+const proyectCoin = new BlockChain('prueba de génesis', '0')
 proyectCoin.addBlock('nuevo bloque datos')
-proyectCoin.addBlock('oootro bloque más :D')
 console.log(JSON.stringify(proyectCoin, null, 2))
